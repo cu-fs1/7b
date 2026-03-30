@@ -24,6 +24,7 @@ Users can view a list of products, add new ones, update quantities, and delete i
 | `zustand/middleware` `persist` | localStorage persistence |
 | shadcn/ui | Pre-built UI components (Button, Input, Spinner) |
 | `clsx` + `tailwind-merge` | Conditional class merging |
+| `tw-animate-css` | Tailwind animations plugin |
 
 ---
 
@@ -65,7 +66,7 @@ pnpm dlx shadcn@latest init
 
 When prompted, choose **neutral** base colour and confirm `app/globals.css` as the CSS file.
 
-Then add the two components used in this project:
+Then add the components used in this project:
 
 ```bash
 pnpm dlx shadcn@latest add button
@@ -118,11 +119,29 @@ type ProductStore = {
 };
 
 const initialProducts: Product[] = [
-  { id: 1, name: "Wireless Headphones", price: 79.99, category: "Electronics", quantity: 10 },
-  { id: 2, name: "Running Shoes",        price: 119.99, category: "Footwear",    quantity: 5  },
-  { id: 3, name: "Coffee Maker",         price: 49.99,  category: "Kitchen",     quantity: 8  },
-  { id: 4, name: "Yoga Mat",             price: 29.99,  category: "Sports",      quantity: 15 },
-  { id: 5, name: "Desk Lamp",            price: 34.99,  category: "Home",        quantity: 12 },
+  {
+    id: 1,
+    name: "Wireless Headphones",
+    price: 79.99,
+    category: "Electronics",
+    quantity: 10,
+  },
+  {
+    id: 2,
+    name: "Running Shoes",
+    price: 119.99,
+    category: "Footwear",
+    quantity: 5,
+  },
+  {
+    id: 3,
+    name: "Coffee Maker",
+    price: 49.99,
+    category: "Kitchen",
+    quantity: 8,
+  },
+  { id: 4, name: "Yoga Mat", price: 29.99, category: "Sports", quantity: 15 },
+  { id: 5, name: "Desk Lamp", price: 34.99, category: "Home", quantity: 12 },
 ];
 
 export const useProductStore = create<ProductStore>()(
@@ -133,28 +152,40 @@ export const useProductStore = create<ProductStore>()(
       setHydrated: (value) => set({ hydrated: value }),
       addProduct: () => {
         const products = get().products;
-        const nextId = products.length ? Math.max(...products.map((p) => p.id)) + 1 : 1;
+        const nextId = products.length
+          ? Math.max(...products.map((p) => p.id)) + 1
+          : 1;
         const nextIndex = products.length + 1;
+
         set({
           products: [
             ...products,
-            { id: nextId, name: `New Product ${nextIndex}`, price: 0, category: "General", quantity: 1 },
+            {
+              id: nextId,
+              name: `New Product ${nextIndex}`,
+              price: 0,
+              category: "General",
+              quantity: 1,
+            },
           ],
         });
       },
       deleteProduct: (id) =>
-        set((state) => ({ products: state.products.filter((p) => p.id !== id) })),
+        set((state) => ({
+          products: state.products.filter((p) => p.id !== id),
+        })),
       updateQuantity: (id, quantity) =>
         set((state) => ({
-          products: state.products.map((p) => (p.id === id ? { ...p, quantity } : p)),
+          products: state.products.map((p) =>
+            p.id === id ? { ...p, quantity } : p,
+          ),
         })),
     }),
     {
-      name: "products-store",                               // localStorage key
-      storage: createJSONStorage(() => localStorage),
-      partialize: (state) => ({ products: state.products }), // only persist products, not hydrated flag
+      name: "products-store",
+      partialize: (state) => ({ products: state.products }),
       onRehydrateStorage: () => (state) => {
-        state?.setHydrated(true);                           // flip flag once data is loaded from storage
+        state?.setHydrated(true);
       },
     },
   ),
@@ -176,13 +207,14 @@ export const useProductStore = create<ProductStore>()(
 import { useProductStore } from "../store/useProductStore";
 import ProductItem from "./ProductItem";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 
 export default function ProductList() {
   const products = useProductStore((state) => state.products);
   const addProduct = useProductStore((state) => state.addProduct);
   const hydrated = useProductStore((state) => state.hydrated);
 
-  if (!hydrated) return <Spinner className="size-6" />; // show spinner until localStorage is read
+  if (!hydrated) return <Spinner className="size-6" />;
 
   return (
     <div className="w-full max-w-2xl">
@@ -193,7 +225,9 @@ export default function ProductList() {
             ({products.length})
           </span>
         </h1>
-        <Button size="sm" onClick={addProduct}>Add</Button>
+        <Button size="sm" onClick={addProduct}>
+          Add
+        </Button>
       </div>
 
       {products.length === 0 ? (
@@ -237,15 +271,22 @@ export default function ProductItem({ product }: { product: Product }) {
   return (
     <div className="flex items-center justify-between rounded-lg border border-zinc-200 bg-white px-5 py-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
       <div className="flex flex-col gap-1">
-        <span className="font-medium text-zinc-900 dark:text-zinc-50">{product.name}</span>
-        <span className="text-sm text-zinc-500 dark:text-zinc-400">{product.category}</span>
+        <span className="font-medium text-zinc-900 dark:text-zinc-50">
+          {product.name}
+        </span>
+        <span className="text-sm text-zinc-500 dark:text-zinc-400">
+          {product.category}
+        </span>
       </div>
       <div className="flex items-center gap-4">
         <span className="font-semibold text-zinc-800 dark:text-zinc-200">
           ${product.price.toFixed(2)}
         </span>
         <div className="flex items-center gap-2">
-          <label htmlFor={`qty-${product.id}`} className="text-sm text-zinc-500 dark:text-zinc-400">
+          <label
+            htmlFor={`qty-${product.id}`}
+            className="text-sm text-zinc-500 dark:text-zinc-400"
+          >
             Qty
           </label>
           <Input
@@ -265,7 +306,7 @@ export default function ProductItem({ product }: { product: Product }) {
             if (!isNaN(parsed) && parsed >= 0) {
               updateQuantity(product.id, parsed);
             } else {
-              setDraft(String(product.quantity)); // revert invalid input
+              setDraft(String(product.quantity));
             }
           }}
         >
@@ -315,16 +356,28 @@ import { Geist, Geist_Mono, Inter } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
-const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
-const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
+const inter = Inter({subsets:['latin'],variable:'--font-sans'});
+
+const geistSans = Geist({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
 
 export const metadata: Metadata = {
   title: "7b",
   description: "Generated by create next app",
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
     <html
       lang="en"
@@ -344,7 +397,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
 pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
 ---
 
